@@ -1,82 +1,137 @@
 const express = require('express')
 const app = express()
 const bodyParser = require("body-parser");
-const Joi = require("joi");
 const port = 8080
 app.use(express.urlencoded());
-
+let studentArray = require("./InitialData");
+let studentCount = studentArray.length;
 // Parse JSON bodies (as sent by API clients)
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 // your code goes here
-let data = require("./InitialData");
-let newId = data.length+1;
-app.get("/api/student",(req,res)=>{
-    console.log(data);
-    res.send(data);
-})
-app.get("/api/student/:id",(req,res)=>{
-    const id = parseInt(req.params.id);
-    const student = data.find((student)=>(student.id===id));
-    if(!student){
-        res.status(404);
-        return;
-    }
-    res.send(student);
-
-})
-app.post("/api/student",(req,res)=>{
-    const schema = Joi.object({
-        name:Joi.string().min(1).required(),
-        currentClass:Joi.number().min(1).required(),
-        division:Joi.string().min(1).required()
-
-    })
-    const valObj = schema.validate(req.body);
-    // res.send(valObj);
-    // return;
-    if(valObj.error){
-        res.send(400);
-        return;
-    }
-    const student={
-        id:newId,
-        ...req.body
-    }
-    newId++;
-    data.push(student);
-    res.send({id:student.id});
 
 
-})
-app.put("/api/student/:id",(req,res)=>{
-    const id =parseInt(req.params.id);
-    const index = data.findIndex((student)=>(id===student.id))
-    console.log(index);
-    if(index===-1){
-        res.status(400);
-        return;
-    }
-    if(!req.body.name){
-        res.status(400);
-        return;
-    }
-    data[index].name = req.body.name;
-    res.send(data[index]);
+app.get('/api/student',(req,res)=>{
+    res.json(studentArray);
 })
 
-app.delete("/api/student/:id",(req,res)=>{
-    const id = parseInt(req.params.id);
-    const index = data.findIndex((student)=>id===student.id);
-    if(index===-1){
-        res.status(400);
+app.get('/api/student/:id',(req,res)=>{
+    const id = req.params.id;
+    const student = studentArray.filter((student)=>student.id === Number(id));
+    if(student.length !== 0){
+        res.json(student[0]);
+    }else{
+        res.sendStatus(404);
         return;
     }
-    const student={...data[index]};
-    data.splice(index,1);
-    res.send(student);
+
+    ;
 })
+
+app.post('/api/student',(req,res)=>{
+    const data = req.body;
+    const {name,currentClass,division} = req.body;
+    if(data && name && currentClass && division){
+        const lastId = studentArray.length !== 0 ? studentArray[studentArray.length -1].id : -1;
+        studentCount = studentCount !== 0 ? studentCount+1 : 0;
+        const newStudent = {
+            id:studentCount,
+            name:name,
+            currentClass:Number(currentClass),
+            division:division,
+
+        }
+        studentArray.push(newStudent);
+        // res.set('content-type','application/x-www-form-urlencoded');
+        res.json({'id':studentCount});
+    }else{
+        res.sendStatus(400);
+        return;
+    }
+})
+
+app.put('/api/student/:id',(req,res)=>{
+    const id = req.params.id;
+    const data = req.body;
+    
+    if(data){
+
+        if(Object.is(parseInt(id),NaN)){
+            res.sendStatus(400);
+        }else{
+            let found = false;
+            let validKey = ["name","currentClass","division"];
+            for(let i =0; i<Object.keys(data).length; i++){
+                found = validKey.includes(Object.keys(data)[i]);
+            }
+            if(!found){
+                res.sendStatus(400);
+                return;
+            }else{
+                let newStudents = [...studentArray];
+                let idFound = false;
+                newStudents = newStudents.map((student)=>{
+                    if(student.id === Number(id)){
+                        idFound = true;
+                        let newS = {...student}
+                        for(let i =0; i<Object.keys(data).length; i++){
+                            newS[Object.keys(data)[i]] = Object.keys(data)[i] ==="currentClass" ? Number(data[Object.keys(data)[i]]):data[Object.keys(data)[i]];
+                        }
+                        return newS;
+                    }else{
+                        return student
+                    }
+                })
+                if(!idFound){
+                    if(Object.keys(data).length === 3){
+                        const lastId = studentArray.length !== 0 ? studentArray[studentArray.length -1].id : -1;
+                        const {name,currentClass,division} = data;
+                        studentCount = studentCount !== 0 ? studentCount+1 : 0;
+                        const newStudent = {
+                            id:studentCount,
+                            name:name,
+                            currentClass:Number(currentClass),
+                            division:division
+
+                        }
+
+                        studentArray.push(newStudent);
+                        res.json()
+                    }else{
+                        res.sendStatus(400)
+                    }
+                }else{
+                    studentArray = []
+                    studentArray = [...newStudents]
+                    res.json();
+                }
+                
+            }
+        }
+    }else{
+        res.sendStatus(400);
+        return;
+    }
+})
+
+app.delete('/api/student/:id',(req,res)=>{
+    const id = req.params.id;
+    const initialLength = studentArray.length;
+    const filteredStudent = studentArray.filter((student)=> student.id !== Number(id));
+    const finalLength = filteredStudent.length;
+
+    if(initialLength > finalLength){
+        studentArray = []
+        studentArray = [...filteredStudent]
+        res.json('deleted');
+    }else{
+        res.sendStatus(404)
+    }
+
+})
+
+
 app.listen(port, () => console.log(`App listening on port ${port}!`))
 
-module.exports = app;   
+module.exports = app; 
