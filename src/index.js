@@ -1,9 +1,7 @@
 const express = require('express')
-const data = require('./InitialData');
 const app = express()
-console.log(data);
 const bodyParser = require("body-parser");
-//const { object } = require('joi');
+const Joi = require("joi");
 const port = 8080
 app.use(express.urlencoded());
 
@@ -12,86 +10,73 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 // your code goes here
-
+let data = require("./InitialData");
+let newId = data.length+1;
 app.get("/api/student",(req,res)=>{
+    console.log(data);
     res.send(data);
 })
-
 app.get("/api/student/:id",(req,res)=>{
     const id = parseInt(req.params.id);
-    const resultArray = data.filter(obj=> obj.id===id);
-    if(resultArray.length===0){
-        res.status(404).send({message:'Not found'});
+    const student = data.find((student)=>(student.id===id));
+    if(!student){
+        res.status(404);
         return;
     }
-    res.send(resultArray[0]);
-})
+    res.send(student);
 
+})
 app.post("/api/student",(req,res)=>{
-    const student = req.body;
-    if(["name","currentClass","division"].every(key => Object.prototype.hasOwnProperty.call(student, key))){
-        const newObjectId = Math.max.apply(Math, data.map(function(obj) { return obj.id; }))+1;
-           data.push({id: newObjectId,
-            ...student,});
-        res.send({id:newObjectId});
-        data.writeFile('InitaialData.js',data,(err)=>{
-            console.log(err);
-        })
+    const schema = Joi.object({
+        name:Joi.string().min(1).required(),
+        currentClass:Joi.number().min(1).required(),
+        division:Joi.string().min(1).required()
+
+    })
+    const valObj = schema.validate(req.body);
+    // res.send(valObj);
+    // return;
+    if(valObj.error){
+        res.send(400);
         return;
     }
-    res.status(400).send({message:'bad request'});
+    const student={
+        id:newId,
+        ...req.body
+    }
+    newId++;
+    data.push(student);
+    res.send({id:student.id});
 
 
 })
-
 app.put("/api/student/:id",(req,res)=>{
-    const student = req.body;
-    const id = req.params.id;
-    console.log(student);
-    //console.log(data.some(obj=> obj.id == parseInt(student.id)));
-   const index =  data.findIndex(obj => obj.id == id);
-
-    if(index >-1){
-        //valid id
-        console.log("id found...");     
-        if(["name","currentClass","division"].some(key => Object.prototype.hasOwnProperty.call(student, key))){
-            console.log("some valid fileds found...");
-            for(key in student){
-                if( Object.prototype.hasOwnProperty.call(data[index], key)){
-                    data[index][key] = student[key];
-                }
-            }
-           // console.log();
-            res.send(data[index]);
-            return;
-            //console.log(["name","currentClass","division"].some(key => Object.prototype.hasOwnProperty.call(student, key)));
-        }
-        res.status(400).send({message:"bad req"});
+    const id =parseInt(req.params.id);
+    const index = data.findIndex((student)=>(id===student.id))
+    console.log(index);
+    if(index===-1){
+        res.status(400);
         return;
-
-
     }
-    res.status(400).send({message:"bad req"});
-    
+    if(!req.body.name){
+        res.status(400);
+        return;
+    }
+    data[index].name = req.body.name;
+    res.send(data[index]);
 })
 
 app.delete("/api/student/:id",(req,res)=>{
-
-    const id = req.params.id;
-    
-    const index =  data.findIndex(obj => obj.id == id);
-
-    if(index > -1){
-        res.send(data.splice(index,1));
-        console.log(data);
+    const id = parseInt(req.params.id);
+    const index = data.findIndex((student)=>id===student.id);
+    if(index===-1){
+        res.status(400);
         return;
     }
-    res.status(404).send();
-
-
+    const student={...data[index]};
+    data.splice(index,1);
+    res.send(student);
 })
-
 app.listen(port, () => console.log(`App listening on port ${port}!`))
-
 
 module.exports = app;   
