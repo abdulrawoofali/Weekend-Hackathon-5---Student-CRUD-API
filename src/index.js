@@ -33,7 +33,7 @@ app.post("/api/student",(req,res)=>{
         const newObjectId = Math.max.apply(Math, data.map(function(obj) { return obj.id; }))+1;
            data.push({id: newObjectId,
             ...student,});
-        res.send({newObjectId});
+        res.send({id:newObjectId});
         return;
     }
     res.status(400).send({message:'bad request'});
@@ -83,7 +83,7 @@ app.delete("/api/student/:id",(req,res)=>{
         console.log(data);
         return;
     }
-    res.status(400).send();
+    res.status(404).send();
 
 
 })
