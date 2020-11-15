@@ -28,11 +28,14 @@ app.get("/api/student/:id",(req,res)=>{
 })
 
 app.post("/api/student",(req,res)=>{
-    const student = req.body;
+    //const student = req.body;
+    const {name,currentClass,division} = req.body;
     if(["name","currentClass","division"].every(key => Object.prototype.hasOwnProperty.call(student, key))){
         const newObjectId = Math.max.apply(Math, data.map(function(obj) { return obj.id; }))+1;
            data.push({id: newObjectId,
-            ...student,});
+            name:name,
+            currentClass:Number(currentClass),
+            division:division});
         res.send({id:newObjectId});
         return;
     }
