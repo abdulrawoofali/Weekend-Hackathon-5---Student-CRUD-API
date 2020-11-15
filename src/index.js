@@ -41,11 +41,12 @@ app.post("/api/student",(req,res)=>{
 
 })
 
-app.put("/api/student",(req,res)=>{
+app.put("/api/student/:id",(req,res)=>{
     const student = req.body;
+    const id = req.params.id;
     console.log(student);
     //console.log(data.some(obj=> obj.id == parseInt(student.id)));
-   const index =  data.findIndex(obj => obj.id == student.id);
+   const index =  data.findIndex(obj => obj.id == id);
 
     if(index >-1){
         //valid id
