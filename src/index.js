@@ -83,7 +83,7 @@ app.delete("/api/student/:id",(req,res)=>{
         console.log(data);
         return;
     }
-    res.status(400).send();
+    res.status(404).send();
 
 
 })
