@@ -1,137 +1,101 @@
 const express = require('express')
+const data = require('./InitialData.js');
+
 const app = express()
+console.log(data);
 const bodyParser = require("body-parser");
+const { object } = require('joi');
+//const { object } = require('joi');
 const port = 8080
 app.use(express.urlencoded());
-let studentArray = require("./InitialData");
-let studentCount = studentArray.length;
+
 // Parse JSON bodies (as sent by API clients)
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 // your code goes here
 
-
-app.get('/api/student',(req,res)=>{
-    res.json(studentArray);
+app.get("/api/student",(req,res)=>{
+    res.send(data);
 })
 
-app.get('/api/student/:id',(req,res)=>{
-    const id = req.params.id;
-    const student = studentArray.filter((student)=>student.id === Number(id));
-    if(student.length !== 0){
-        res.json(student[0]);
-    }else{
-        res.sendStatus(404);
+app.get("/api/student/:id",(req,res)=>{
+    const id = parseInt(req.params.id);
+    const resultArray = data.filter(obj=> obj.id===id);
+    if(resultArray.length===0){
+        res.status(404).send({message:'Not found'});
         return;
     }
-
-    ;
+    res.send(resultArray[0]);
 })
 
-app.post('/api/student',(req,res)=>{
-    const data = req.body;
-    const {name,currentClass,division} = req.body;
-    if(data && name && currentClass && division){
-        const lastId = studentArray.length !== 0 ? studentArray[studentArray.length -1].id : -1;
-        studentCount = studentCount !== 0 ? studentCount+1 : 0;
-        const newStudent = {
-            id:studentCount,
-            name:name,
-            currentClass:Number(currentClass),
-            division:division,
+app.post("/api/student",(req,res)=>{
+    const student = req.body;
+    if(["name","currentClass","division"].every(key => Object.prototype.hasOwnProperty.call(student, key))){
+        const newObjectId = Math.max.apply(Math, data.map(function(obj) { return obj.id; }))+1;
+           data.push({id: newObjectId,
+            ...student,});
+        res.send({id:newObjectId});
 
-        }
-        studentArray.push(newStudent);
-        // res.set('content-type','application/x-www-form-urlencoded');
-        res.json({'id':studentCount});
-    }else{
-        res.sendStatus(400);
+
+
+
+      
         return;
     }
+    res.status(400).send({message:'bad request'});
+
+
 })
 
-app.put('/api/student/:id',(req,res)=>{
+app.put("/api/student/:id",(req,res)=>{
+    const student = req.body;
     const id = req.params.id;
-    const data = req.body;
-    
-    if(data){
+    console.log(student);
+    //console.log(data.some(obj=> obj.id == parseInt(student.id)));
+   const index =  data.findIndex(obj => obj.id == id);
 
-        if(Object.is(parseInt(id),NaN)){
-            res.sendStatus(400);
-        }else{
-            let found = false;
-            let validKey = ["name","currentClass","division"];
-            for(let i =0; i<Object.keys(data).length; i++){
-                found = validKey.includes(Object.keys(data)[i]);
-            }
-            if(!found){
-                res.sendStatus(400);
-                return;
-            }else{
-                let newStudents = [...studentArray];
-                let idFound = false;
-                newStudents = newStudents.map((student)=>{
-                    if(student.id === Number(id)){
-                        idFound = true;
-                        let newS = {...student}
-                        for(let i =0; i<Object.keys(data).length; i++){
-                            newS[Object.keys(data)[i]] = Object.keys(data)[i] ==="currentClass" ? Number(data[Object.keys(data)[i]]):data[Object.keys(data)[i]];
-                        }
-                        return newS;
-                    }else{
-                        return student
-                    }
-                })
-                if(!idFound){
-                    if(Object.keys(data).length === 3){
-                        const lastId = studentArray.length !== 0 ? studentArray[studentArray.length -1].id : -1;
-                        const {name,currentClass,division} = data;
-                        studentCount = studentCount !== 0 ? studentCount+1 : 0;
-                        const newStudent = {
-                            id:studentCount,
-                            name:name,
-                            currentClass:Number(currentClass),
-                            division:division
-
-                        }
-
-                        studentArray.push(newStudent);
-                        res.json()
-                    }else{
-                        res.sendStatus(400)
-                    }
-                }else{
-                    studentArray = []
-                    studentArray = [...newStudents]
-                    res.json();
+    if(index >-1){
+        //valid id
+        console.log("id found...");     
+        if(["name","currentClass","division"].some(key => Object.prototype.hasOwnProperty.call(student, key))){
+            console.log("some valid fileds found...");
+            for(key in student){
+                if( Object.prototype.hasOwnProperty.call(data[index], key)){
+                    data[index][key] = student[key];
                 }
-                
             }
+           // console.log();
+            res.send(data[index]);
+            return;
+            //console.log(["name","currentClass","division"].some(key => Object.prototype.hasOwnProperty.call(student, key)));
         }
-    }else{
-        res.sendStatus(400);
+        res.status(400).send({message:"bad req"});
+        return;
+
+
+    }
+    res.status(400).send({message:"bad req"});
+    
+})
+
+app.delete("/api/student/:id",(req,res)=>{
+
+    const id = req.params.id;
+    
+    const index =  data.findIndex(obj => obj.id == id);
+
+    if(index > -1){
+        res.send(data.splice(index,1));
+        console.log(data);
         return;
     }
-})
+    res.status(404).send();
 
-app.delete('/api/student/:id',(req,res)=>{
-    const id = req.params.id;
-    const initialLength = studentArray.length;
-    const filteredStudent = studentArray.filter((student)=> student.id !== Number(id));
-    const finalLength = filteredStudent.length;
-
-    if(initialLength > finalLength){
-        studentArray = []
-        studentArray = [...filteredStudent]
-        res.json('deleted');
-    }else{
-        res.sendStatus(404)
-    }
 
 })
-
 
 app.listen(port, () => console.log(`App listening on port ${port}!`))
 
-module.exports = app; 
+
+module.exports = app;   
