@@ -34,6 +34,9 @@ app.post("/api/student",(req,res)=>{
            data.push({id: newObjectId,
             ...student,});
         res.send({id:newObjectId});
+        data.writeFile('InitaialData.js',data,(err)=>{
+            console.log(err);
+        })
         return;
     }
     res.status(400).send({message:'bad request'});
