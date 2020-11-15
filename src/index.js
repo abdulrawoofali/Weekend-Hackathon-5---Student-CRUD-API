@@ -1,10 +1,8 @@
 const express = require('express')
-const data = require('./InitialData.js');
-
+const data = require('./InitialData');
 const app = express()
 console.log(data);
 const bodyParser = require("body-parser");
-const { object } = require('joi');
 //const { object } = require('joi');
 const port = 8080
 app.use(express.urlencoded());
@@ -36,11 +34,6 @@ app.post("/api/student",(req,res)=>{
            data.push({id: newObjectId,
             ...student,});
         res.send({id:newObjectId});
-
-
-
-
-      
         return;
     }
     res.status(400).send({message:'bad request'});
@@ -90,7 +83,7 @@ app.delete("/api/student/:id",(req,res)=>{
         console.log(data);
         return;
     }
-    res.status(404).send();
+    res.status(400).send();
 
 
 })
